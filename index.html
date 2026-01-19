@@ -1,273 +1,89 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Prime8s Cinema Pro</title>
-    <style>
-        :root { --bg: #0a0a0a; --sidebar: #151515; --accent: #00ff88; --text: #eee; --panel: #222; }
-        body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; transition: all 0.3s ease; }
-        
-        #sidebar { width: 320px; background: var(--sidebar); border-right: 1px solid #333; display: flex; flex-direction: column; padding: 20px; box-shadow: 5px 0 15px rgba(0,0,0,0.5); z-index: 10; transition: margin-left 0.3s ease; overflow-y: auto; }
-        body.theater-mode #sidebar { margin-left: -360px; }
-        
-        h2 { margin-top: 0; color: var(--accent); font-size: 1.5rem; letter-spacing: -1px; }
-        .group { margin-bottom: 25px; border-bottom: 1px solid #222; padding-bottom: 15px; }
-        label { display: block; font-size: 11px; color: #888; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
-        
-        input[type="number"] { width: 100%; padding: 12px; background: #000; border: 1px solid #444; color: white; border-radius: 8px; font-size: 16px; outline: none; box-sizing: border-box; }
-        
-        /* Preset Buttons */
-        .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .btn-small { background: #222; border: 1px solid #444; color: #ccc; padding: 8px; border-radius: 6px; cursor: pointer; font-size: 11px; }
-        .btn-small:hover { border-color: var(--accent); color: var(--accent); }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prime8s Cinema Pro (Self-Hosted)</title>
+  <style>
+    :root { --bg: #0a0a0a; --sidebar: #151515; --accent: #00ff88; --text: #eee; --panel: #222; }
+    body { margin: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+    #sidebar { width: 320px; background: var(--sidebar); border-right: 1px solid #333; display: flex; flex-direction: column; padding: 20px; box-shadow: 5px 0 15px rgba(0,0,0,0.5); z-index: 10; transition: margin-left 0.3s ease; overflow-y: auto; }
+    body.theater-mode #sidebar { margin-left: -360px; }
+    h2 { margin-top: 0; color: var(--accent); font-size: 1.5rem; letter-spacing: -1px; }
+    .group { margin-bottom: 25px; border-bottom: 1px solid #222; padding-bottom: 15px; }
+    label { display: block; font-size: 11px; color: #888; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+    input[type="number"], input[type="text"] { width: 100%; padding: 12px; background: #000; border: 1px solid #444; color: white; border-radius: 8px; font-size: 16px; outline: none; box-sizing: border-box; }
+    input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--accent); }
+    .light-val { float: right; color: var(--accent); font-weight: bold; }
+    .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .btn-small { background: #222; border: 1px solid #444; color: #ccc; padding: 8px; border-radius: 6px; cursor: pointer; font-size: 11px; }
+    .btn-small:hover { border-color: var(--accent); color: var(--accent); }
+    #fav-container { flex-grow: 1; margin-top: 10px; }
+    .fav-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--panel); margin-bottom: 5px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+    .fav-item:hover { background: #2a2a2a; color: var(--accent); }
 
-        input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--accent); }
-        .light-val { float: right; color: var(--accent); font-weight: bold; }
+    #viewport { flex-grow: 1; position: relative; }
+    #viewerHost { position: absolute; inset: 0; }
 
-        #fav-container { flex-grow: 1; margin-top: 10px; }
-        .fav-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--panel); margin-bottom: 5px; border-radius: 6px; cursor: pointer; font-size: 13px; }
-        .fav-item:hover { background: #2a2a2a; color: var(--accent); }
+    .toolbar { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; background: rgba(0,0,0,0.85); padding: 10px 20px; border-radius: 100px; border: 1px solid #444; backdrop-filter: blur(12px); z-index: 50; }
+    button { background: #333; color: white; border: none; padding: 10px 18px; border-radius: 50px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 6px; font-size: 13px; }
+    button:hover { background: var(--accent); color: black; }
+    .toggle-theater { position: absolute; top: 20px; left: 20px; z-index: 100; background: rgba(0,0,0,0.5); border: 1px solid #444; }
+    .export-btn { font-size: 10px; padding: 8px; margin-top: 10px; border: 1px solid #444; background: transparent; color: #666; width: 100%; cursor: pointer; }
 
-        #viewport { flex-grow: 1; position: relative; transition: filter 0.5s ease; }
-        iframe { width: 100%; height: 100%; border: none; }
-
-        /* Overlay UI */
-        .toolbar { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; background: rgba(0,0,0,0.85); padding: 10px 20px; border-radius: 100px; border: 1px solid #444; backdrop-filter: blur(12px); }
-        button { background: #333; color: white; border: none; padding: 10px 18px; border-radius: 50px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 6px; font-size: 13px; }
-        button:hover { background: var(--accent); color: black; }
-        
-        .toggle-theater { position: absolute; top: 20px; left: 20px; z-index: 100; background: rgba(0,0,0,0.5); border: 1px solid #444; }
-        .export-btn { font-size: 10px; padding: 8px; margin-top: 10px; border: 1px solid #444; background: transparent; color: #666; width: 100%; cursor: pointer; }
-
-        /* Custom Lighting Tints */
-        .warm-tint { filter: sepia(0.3) saturate(1.2) hue-rotate(-10deg); }
-        .cool-tint { filter: saturate(0.8) hue-rotate(180deg) brightness(1.1); }
-        .studio-tint { filter: contrast(1.2) brightness(1.1); }
-    </style>
+    /* Loading overlay */
+    #loading { position:absolute; inset:0; display:none; align-items:center; justify-content:center; background: rgba(0,0,0,0.55); z-index: 40; }
+    #loading .pill { padding: 10px 14px; border-radius: 999px; border: 1px solid #333; background: rgba(0,0,0,0.75); color: #fff; font-size: 13px; }
+    #err { position:absolute; top: 20px; right: 20px; max-width: 520px; background: rgba(120,0,0,0.85); border: 1px solid rgba(255,255,255,0.15); padding: 12px 14px; border-radius: 12px; display:none; z-index: 200; }
+    #err b { display:block; margin-bottom: 6px; }
+  </style>
 </head>
 <body class="theater-mode">
+  <div id="sidebar">
+    <h2>Prime8s Pro</h2>
 
-    <div id="sidebar">
-        <h2>Prime8s Pro</h2>
-        
-        <div class="group">
-            <label>Character ID</label>
-            <input type="number" id="idInput" value="1" min="1" max="3333" onchange="updateViewer()">
-        </div>
-
-        <div class="group">
-            <label>Lighting Presets</label>
-            <div class="preset-grid">
-                <button class="btn-small" onclick="setLighting('default', 1.0)">Standard</button>
-                <button class="btn-small" onclick="setLighting('warm', 1.2)">Warm Sunset</button>
-                <button class="btn-small" onclick="setLighting('cool', 0.8)">Neon Moonlight</button>
-                <button class="btn-small" onclick="setLighting('studio', 2.0)">Pro Studio</button>
-            </div>
-        </div>
-
-        <div class="group">
-            <label>HDRI / Environment Map</label>
-            <input type="text" id="envInput" value="cloudysky" placeholder="e.g. cloudysky" onchange="updateViewer()">
-        </div>
-
-        <div class="group">
-            <label>Intensity <span id="lightValDisplay" class="light-val">1.0</span></label>
-            <input type="range" id="lightSlider" min="0.1" max="3.0" step="0.1" value="1.0" oninput="updateLightDisplay()" onchange="updateViewer()">
-        </div>
-
-        <div id="fav-container">
-            <label>Favorites</label>
-            <div id="favList"></div>
-            <button class="export-btn" onclick="exportFavs()">💾 Export List</button>
-        </div>
+    <div class="group">
+      <label>Character ID</label>
+      <input type="number" id="idInput" value="1" min="1" max="3333">
     </div>
 
-    <div id="viewport">
-        <button class="toggle-theater" onclick="toggleTheater()" title="Toggle Sidebar (T)">☰</button>
-        <iframe id="viewerFrame"></iframe>
-        
-        <div class="toolbar">
-            <button onclick="changeID(-1)">←</button>
-            <button onclick="randomID()">🎲 Random</button>
-            <button style="color:#ffcc00" onclick="toggleFavorite()">⭐ Save</button>
-            <button onclick="openScreenshot()">📸 Shot</button>
-            <button onclick="copyURL()">🔗 Link</button>
-            <button onclick="changeID(1)">→</button>
-        </div>
+    <div class="group">
+      <label>Lighting Presets</label>
+      <div class="preset-grid">
+        <button class="btn-small" id="presetStandard">Standard</button>
+        <button class="btn-small" id="presetWarm">Warm Key</button>
+        <button class="btn-small" id="presetCool">Cool Key</button>
+        <button class="btn-small" id="presetStudio">Pro Studio</button>
+      </div>
     </div>
 
-    <script>
-        // Viewer base URL
-        // Added HDRI / image-based lighting via `environmentMap` (built-in presets, e.g. "cloudysky")
-        // plus real shadows + ground contact shadow for depth.
-        const VIEWER_URL_ROOT =
-          "https://viewer.mml.io/v0.23.1/v1/?" +
-          "cameraFitContents=false" +
-          "&cameraFov=43" +
-          "&cameraLookAt=0%2C1%2C0" +
-          "&cameraPosition=0%2C1.6%2C3.4" +
+    <div class="group">
+      <label>Intensity <span id="lightValDisplay" class="light-val">1.0</span></label>
+      <input type="range" id="lightSlider" min="0.1" max="3.0" step="0.1" value="1.0">
+    </div>
 
-          // 💡 Lights (your slider will scale these in updateViewer())
-          "&ambientLight=0.35" +
-          "&directionalLight=1.4" +
-          "&directionalLightPosition=2%2C4%2C3" +
-          "&hemisphereLight=0.6" +
+    <div id="fav-container">
+      <label>Favorites</label>
+      <div id="favList"></div>
+      <button class="export-btn" id="exportFavs">💾 Export List</button>
+    </div>
+  </div>
 
-          // 🌑 Shadows + ground contact
-          "&shadows=true" +
-          "&shadowMapSize=2048" +
-          "&ground=true" +
-          "&groundY=0" +
-          "&groundShadowOpacity=0.35" +
+  <div id="viewport">
+    <button class="toggle-theater" id="toggleTheater" title="Toggle Sidebar (T)">☰</button>
+    <div id="viewerHost"></div>
+    <div id="loading"><div class="pill">Loading Prime8…</div></div>
+    <div id="err"><b>Viewer error</b><div id="errMsg"></div></div>
 
-          "&loadingStyle=spinner" +
-          "&charAnim=https%3A%2F%2Fstorage.googleapis.com%2Fglb-content-bucket%2Fidle-no-root-motion.glb" +
-          "&noUI=true";
-        const SOURCE_ROOT = "https://prime8s.s3.us-east-2.amazonaws.com/mml/";
-        
-        let favorites = JSON.parse(localStorage.getItem('prime8s_favs_offset')) || [];
+    <div class="toolbar">
+      <button id="prevBtn">←</button>
+      <button id="randBtn">🎲 Random</button>
+      <button id="favBtn" style="color:#ffcc00">⭐ Save</button>
+      <button id="copyBtn">🔗 Link</button>
+      <button id="nextBtn">→</button>
+    </div>
+  </div>
 
-        function setLighting(type, intensity) {
-            const vp = document.getElementById('viewport');
-            const slider = document.getElementById('lightSlider');
-            
-            // Remove all tints
-            vp.classList.remove('warm-tint', 'cool-tint', 'studio-tint');
-            
-            // Apply new tint
-            if (type !== 'default') vp.classList.add(type + '-tint');
-            
-            slider.value = intensity;
-            updateLightDisplay();
-            updateViewer();
-        }
-
-        function updateLightDisplay() {
-            document.getElementById('lightValDisplay').innerText = document.getElementById('lightSlider').value;
-        }
-
-        function updateViewer() {
-            const displayId = parseInt(document.getElementById('idInput').value);
-            const lightValue = document.getElementById('lightSlider').value;
-            const envMap = (document.getElementById('envInput')?.value || 'cloudysky').trim();
-            const fileId = displayId - 1; 
-
-            if (fileId < 0) return;
-
-            // Scale the lighting rig together so the slider behaves like a real dimmer.
-            const lv = parseFloat(lightValue);
-            const fullUrl =
-              `${VIEWER_URL_ROOT}` +
-              `&environmentMap=${encodeURIComponent(envMap)}` +
-              `&ambientLight=${(lv * 0.35).toFixed(2)}` +
-              `&directionalLight=${(lv * 1.40).toFixed(2)}` +
-              `&hemisphereLight=${(lv * 0.60).toFixed(2)}` +
-              `&url=${encodeURIComponent(SOURCE_ROOT + fileId + '.mml')}`;
-            document.getElementById('viewerFrame').src = fullUrl;
-            renderFavorites();
-        }
-
-        function toggleTheater() { document.body.classList.toggle('theater-mode'); }
-
-        function changeID(delta) {
-            const input = document.getElementById('idInput');
-            let next = parseInt(input.value) + delta;
-            if (next >= 1 && next <= 3333) {
-                input.value = next;
-                updateViewer();
-            }
-        }
-
-        function randomID() {
-            document.getElementById('idInput').value = Math.floor(Math.random() * 3333) + 1;
-            updateViewer();
-        }
-
-        function toggleFavorite() {
-            const displayId = document.getElementById('idInput').value;
-            if (!favorites.includes(displayId)) {
-                favorites.push(displayId);
-                localStorage.setItem('prime8s_favs_offset', JSON.stringify(favorites));
-                renderFavorites();
-            }
-        }
-
-        function removeFavorite(id, e) {
-            e.stopPropagation();
-            favorites = favorites.filter(f => f !== id);
-            localStorage.setItem('prime8s_favs_offset', JSON.stringify(favorites));
-            renderFavorites();
-        }
-
-        function renderFavorites() {
-            const list = document.getElementById('favList');
-            list.innerHTML = '';
-            favorites.sort((a,b) => parseInt(a) - parseInt(b)).forEach(id => {
-                const item = document.createElement('div');
-                item.className = 'fav-item';
-                item.innerHTML = `<span>#${id}</span> <button onclick="removeFavorite('${id}', event)">×</button>`;
-                item.onclick = () => { document.getElementById('idInput').value = id; updateViewer(); };
-                list.appendChild(item);
-            });
-        }
-
-        function exportFavs() {
-            const blob = new Blob([favorites.join('\n')], {type: 'text/plain'});
-            const elem = window.document.createElement('a');
-            elem.href = window.URL.createObjectURL(blob);
-            elem.download = 'prime8s_favorites.txt';
-            document.body.appendChild(elem);
-            elem.click();
-            document.body.removeChild(elem);
-        }
-
-        // Screenshot helper
-        // NOTE: The MML viewer iframe is cross-origin, so we can't directly read pixels from it.
-        // This opens the exact same viewer URL in a new tab with the viewer UI enabled,
-        // so you can use the viewer's built-in screenshot / download tools (or the browser save image flow).
-        function openScreenshot() {
-            const id = document.getElementById('idInput').value;
-            const lv = parseFloat(document.getElementById('lightSlider').value);
-            const envMap = (document.getElementById('envInput')?.value || 'cloudysky').trim();
-
-            // Build the same URL as the iframe, but with UI enabled (noUI=false)
-            const base = VIEWER_URL_ROOT.replace('&noUI=true', '&noUI=false');
-            const url =
-              `${base}` +
-              `&environmentMap=${encodeURIComponent(envMap)}` +
-              `&ambientLight=${(lv * 0.35).toFixed(2)}` +
-              `&directionalLight=${(lv * 1.40).toFixed(2)}` +
-              `&hemisphereLight=${(lv * 0.60).toFixed(2)}` +
-              `&url=${encodeURIComponent(SOURCE_ROOT + (id-1) + '.mml')}`;
-
-            window.open(url, '_blank', 'noopener,noreferrer');
-        }
-
-        function copyURL() {
-            const id = document.getElementById('idInput').value;
-            const lv = parseFloat(document.getElementById('lightSlider').value);
-            const envMap = (document.getElementById('envInput')?.value || 'cloudysky').trim();
-            const url =
-              `${VIEWER_URL_ROOT}` +
-              `&environmentMap=${encodeURIComponent(envMap)}` +
-              `&ambientLight=${(lv * 0.35).toFixed(2)}` +
-              `&directionalLight=${(lv * 1.40).toFixed(2)}` +
-              `&hemisphereLight=${(lv * 0.60).toFixed(2)}` +
-              `&url=${encodeURIComponent(SOURCE_ROOT + (id-1) + '.mml')}`;
-            navigator.clipboard.writeText(url);
-            alert("URL with Lighting Copied!");
-        }
-
-        window.addEventListener('keydown', (e) => {
-            if (e.target.tagName === 'INPUT') return;
-            if (e.key === "ArrowRight") changeID(1);
-            if (e.key === "ArrowLeft") changeID(-1);
-            if (e.key.toLowerCase() === "r") randomID();
-            if (e.key.toLowerCase() === "f") toggleFavorite();
-            if (e.key.toLowerCase() === "t") toggleTheater();
-        });
-
-        updateViewer();
-    </script>
+  <script type="module" src="/src/main.js"></script>
 </body>
 </html>
